@@ -122,22 +122,140 @@ run_test() {
 
 show_report() {
     cd "$(dirname "$0")"
+    local mode=${1:-html}  # html ou terminal
     
-    if [ -x "./utils/view-report.sh" ]; then
-        ./utils/view-report.sh
-    else
-        # Fallback: abrir o mais recente diretamente
-        latest_report=$(ls -t reports/*.html 2>/dev/null | head -n1)
-        if [ -n "$latest_report" ]; then
-            print_info "Abrindo relatório mais recente..."
-            open "$latest_report" 2>/dev/null || xdg-open "$latest_report" 2>/dev/null || print_error "Não foi possível abrir o relatório automaticamente. Abra manualmente: $latest_report"
-        else
+    if [ "$mode" = "terminal" ] || [ "$mode" = "t" ]; then
+        # Mostrar resumo no terminal
+        # Listar relatórios disponíveis
+        reports=($(ls -t reports/*-summary.json 2>/dev/null))
+        
+        if [ ${#reports[@]} -eq 0 ]; then
             print_error "Nenhum relatório encontrado em ./reports/"
             echo ""
             echo "Execute um teste primeiro:"
-            echo "  ./run.sh list"
             echo "  ./run.sh <cenario>"
             exit 1
+        fi
+        
+        local selected_json=""
+        
+        # Se houver mais de um relatório, permitir seleção
+        if [ ${#reports[@]} -gt 1 ]; then
+            echo ""
+            echo -e "${BLUE}📊 RELATÓRIOS DISPONÍVEIS:${NC}"
+            echo ""
+            
+            for i in "${!reports[@]}"; do
+                local report="${reports[$i]}"
+                local basename=$(basename "$report")
+                local html_name="${basename%-summary.json}.html"
+                local size=$(ls -lh "$report" | awk '{print $5}')
+                local date=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$report" 2>/dev/null || stat -c "%y" "$report" 2>/dev/null | cut -d'.' -f1)
+                
+                echo "  [$((i+1))] ${html_name}"
+                echo "      Tamanho: $size | Modificado: $date"
+                echo ""
+            done
+            
+            echo -ne "${YELLOW}Digite o número do relatório para visualizar (Enter para o mais recente): ${NC}"
+            read choice
+            
+            if [ -z "$choice" ]; then
+                selected_json="${reports[0]}"
+            elif [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#reports[@]} ]; then
+                selected_json="${reports[$((choice-1))]}"
+            else
+                print_error "Opção inválida!"
+                exit 1
+            fi
+        else
+            selected_json="${reports[0]}"
+        fi
+        
+        # Mostrar relatório selecionado
+        if [ -n "$selected_json" ]; then
+            print_header "📊 RESUMO DO RELATÓRIO"
+            
+            if command -v jq &> /dev/null; then
+                echo ""
+                print_info "Arquivo: $(basename $selected_json)"
+                echo ""
+                
+                # Extrair métricas principais
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${YELLOW}📈 MÉTRICAS PRINCIPAIS${NC}"
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                
+                jq -r '
+                    "Total de requisições: \(.metrics.http_reqs.values.count // 0)",
+                    "Taxa de requisições: \(.metrics.http_reqs.values.rate // 0 | tonumber | . * 100 / 100) req/s",
+                    "Taxa de falhas: \((.metrics.http_req_failed.values.rate // 0 | tonumber * 100 | . * 100 / 100))%",
+                    "",
+                    "Duração da requisição (http_req_duration):",
+                    "  • Média: \(.metrics.http_req_duration.values.avg // 0 | tonumber | . * 100 / 100)ms",
+                    "  • Mínima: \(.metrics.http_req_duration.values.min // 0 | tonumber | . * 100 / 100)ms",
+                    "  • Mediana (p50): \(.metrics.http_req_duration.values.med // 0 | tonumber | . * 100 / 100)ms",
+                    "  • p(90): \(.metrics.http_req_duration.values."p(90)" // 0 | tonumber | . * 100 / 100)ms",
+                    "  • p(95): \(.metrics.http_req_duration.values."p(95)" // 0 | tonumber | . * 100 / 100)ms",
+                    "  • Máxima: \(.metrics.http_req_duration.values.max // 0 | tonumber | . * 100 / 100)ms",
+                    "",
+                    "VUs (Usuários Virtuais):",
+                    "  • Mínimo: \(.metrics.vus.values.min // 0)",
+                    "  • Máximo: \(.metrics.vus.values.max // 0)",
+                    "",
+                    "Duração do teste: \(.state.testRunDurationMs // 0 | tonumber / 1000)s"
+                ' "$selected_json"
+                
+                echo ""
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                
+                # Verificar thresholds
+                echo ""
+                echo -e "${YELLOW}✓ THRESHOLDS${NC}"
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                jq -r '
+                    .metrics | to_entries[] | 
+                    select(.value.thresholds != null) | 
+                    .key as $metric |
+                    .value.thresholds | to_entries[] |
+                    if .value.ok then
+                        "  ✅ \($metric): \(.key)"
+                    else
+                        "  ❌ \($metric): \(.key)"
+                    end
+                ' "$selected_json" || echo "  Nenhum threshold configurado"
+                
+                echo ""
+                print_success "Para visualizar no navegador: ./run.sh report"
+            else
+                print_warning "Instale 'jq' para visualização formatada"
+                echo ""
+                echo "Para instalar jq:"
+                echo "  macOS: brew install jq"
+                echo "  Linux: sudo apt-get install jq"
+                echo ""
+                print_info "Mostrando JSON bruto..."
+                cat "$selected_json"
+            fi
+        fi
+    else
+        # Abrir no navegador (comportamento padrão)
+        if [ -x "./utils/view-report.sh" ]; then
+            ./utils/view-report.sh
+        else
+            # Fallback: abrir o mais recente diretamente
+            latest_report=$(ls -t reports/*.html 2>/dev/null | head -n1)
+            if [ -n "$latest_report" ]; then
+                print_info "Abrindo relatório mais recente..."
+                open "$latest_report" 2>/dev/null || xdg-open "$latest_report" 2>/dev/null || print_error "Não foi possível abrir o relatório automaticamente. Abra manualmente: $latest_report"
+            else
+                print_error "Nenhum relatório encontrado em ./reports/"
+                echo ""
+                echo "Execute um teste primeiro:"
+                echo "  ./run.sh list"
+                echo "  ./run.sh <cenario>"
+                exit 1
+            fi
         fi
     fi
 }
@@ -157,12 +275,14 @@ main() {
         echo "Uso:"
         echo "  ./run.sh <cenário>     - Executa um cenário específico"
         echo "  ./run.sh list          - Lista todos os cenários disponíveis"
-        echo "  ./run.sh report        - Abre o último relatório"
+        echo "  ./run.sh report        - Abre o último relatório no navegador"
+        echo "  ./run.sh report t      - Mostra resumo no terminal"
         echo "  ./run.sh help          - Mostra esta mensagem"
         echo ""
         echo "Exemplos:"
         echo "  ./run.sh get           - Executa cenário 'get'"
-        echo "  ./run.sh report        - Abre último relatório"
+        echo "  ./run.sh report        - Abre relatório HTML"
+        echo "  ./run.sh report t      - Resumo no terminal"
         echo ""
         list_scenarios
         exit 0
@@ -174,7 +294,7 @@ main() {
             list_scenarios
             ;;
         report)
-            show_report
+            show_report "${2:-html}"
             ;;
         help)
             main

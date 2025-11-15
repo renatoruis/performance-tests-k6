@@ -57,8 +57,11 @@ Edite `scenarios/config.json`:
 ### 3️⃣ Veja o resultado
 
 ```bash
-# Abre automaticamente o relatório mais recente
+# Abre relatório HTML no navegador
 ./run.sh report
+
+# Ou veja resumo direto no terminal
+./run.sh report t
 ```
 
 ## Configurações do Cenário
@@ -108,7 +111,8 @@ Edite `scenarios/config.json`:
 ```bash
 ./run.sh list           # Lista todos os cenários
 ./run.sh <cenario>      # Executa um cenário
-./run.sh report         # Abre o último relatório
+./run.sh report         # Abre o último relatório (HTML)
+./run.sh report t       # Mostra resumo no terminal
 ./run.sh help           # Mostra ajuda
 ```
 
