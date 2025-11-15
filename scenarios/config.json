@@ -1,0 +1,118 @@
+{
+  "api": {
+    "baseUrl": "http://localhost:8888",
+    "description": "API local de throttling e rate limiting"
+  },
+  "auth": {
+    "enabled": true,
+    "tokenUrl": "http://localhost:8080/realms/timdevops/protocol/openid-connect/token",
+    "clientId": "api-testes",
+    "clientSecret": "f2IEFFBC4SZ8CYxt7xzHfDm002R8Yt7v"
+  },
+  "scenarios": {
+    "get": {
+      "name": "Descrição: Teste básico",
+      "method": "GET",
+      "endpoint": "/api/get",
+      "requireAuth": false,
+      "vus": 10,
+      "duration": "15s",
+      "timeout": "5s",
+      "expectedStatus": 200,
+      "slowThreshold": 5000,
+      "thresholds": {
+        "http_req_duration": ["p(99)<5000"],
+        "req_fail_rate": ["rate<0.01"]
+      }
+    },
+    "post": {
+      "name": "Descrição: Teste de POST",
+      "method": "POST",
+      "endpoint": "/api/post",
+      "requireAuth": true,
+      "customPayload": {
+        "test": "performance test",
+        "timestamp": "dynamic",
+        "data": {
+          "nested": "value",
+          "number": 123
+        }
+      },
+      "vus": 3,
+      "duration": "1m",
+      "timeout": "5s",
+      "expectedStatus": 201,
+      "slowThreshold": 4000,
+      "sleep": 0.1,
+      "thresholds": {
+        "http_req_duration": ["p(99)<4000"],
+        "req_fail_rate": ["rate<0.05"]
+      }
+    },
+    "db-get": {
+      "name": "Descrição: Teste de GET",
+      "method": "GET",
+      "endpoint": "/api/db/messages",
+      "requireAuth": true,
+      "vus": 5,
+      "duration": "1m",
+      "timeout": "5s",
+      "expectedStatus": 200,
+      "slowThreshold": 4000,
+      "sleep": 0.2,
+      "thresholds": {
+        "http_req_duration": ["p(99)<4000"],
+        "req_fail_rate": ["rate<0.05"]
+      }
+    },
+    "db-post": {
+      "name": "Descrição: Teste de POST",
+      "method": "POST",
+      "endpoint": "/api/db/messages",
+      "requireAuth": true,
+      "customPayload": {
+        "content": "Mensagem de teste de performance - timestamp: {{timestamp}}"
+      },
+      "vus": 5,
+      "duration": "1m",
+      "timeout": "5s",
+      "expectedStatus": 201,
+      "slowThreshold": 4000,
+      "sleep": 0.2,
+      "thresholds": {
+        "http_req_duration": ["p(99)<4000"],
+        "req_fail_rate": ["rate<0.05"]
+      }
+    },
+    "db-crud": {
+      "name": "Descrição: Teste CRUD Completo",
+      "method": "MIXED",
+      "requireAuth": true,
+      "description": "Alterna entre POST e GET no endpoint /api/db/messages",
+      "endpoints": [
+        {
+          "method": "POST",
+          "endpoint": "/api/db/messages",
+          "weight": 0.3,
+          "payload": {"content": "Test message {{timestamp}}"},
+          "expectedStatus": 201
+        },
+        {
+          "method": "GET",
+          "endpoint": "/api/db/messages",
+          "weight": 0.7,
+          "expectedStatus": 200
+        }
+      ],
+      "vus": 5,
+      "duration": "10s",
+      "timeout": "5s",
+      "sleep": 0.2,
+      "thresholds": {
+        "http_req_duration": ["p(99)<4000"],
+        "req_fail_rate": ["rate<0.1"]
+      }
+    }
+  }
+}
+

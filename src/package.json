@@ -1,0 +1,27 @@
+{
+  "name": "mercantil-performance-tests",
+  "version": "1.0.0",
+  "description": "Testes de performance consolidados usando k6",
+  "scripts": {
+    "test": "k6 run main.js",
+    "test:light": "k6 run -e SCENARIO=get-light main.js",
+    "test:default": "k6 run -e SCENARIO=default main.js",
+    "test:2k": "k6 run -e SCENARIO=get-2k main.js",
+    "test:10k": "k6 run -e SCENARIO=get-10k-rampup main.js",
+    "test:post": "k6 run -e SCENARIO=post-light main.js",
+    "test:stress": "k6 run -e SCENARIO=stress-test main.js",
+    "test:constant": "k6 run -e SCENARIO=get-constant-200tps main.js",
+    "report": "./view-report.sh",
+    "list": "./run.sh list"
+  },
+  "keywords": [
+    "k6",
+    "performance",
+    "load-testing",
+    "mercantil"
+  ],
+  "author": "Mercantil - Equipe de Performance",
+  "license": "UNLICENSED",
+  "private": true
+}
+
