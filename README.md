@@ -167,6 +167,8 @@ Para ambientes de dev/teste com certificados autoassinados, adicione:
 ```json
 "insecureSkipTLSVerify": true
 ```
+Isso fará bypass SSL tanto na API quanto no Keycloak (se autenticação estiver habilitada).
+
 ⚠️ **Atenção:** Use apenas em ambientes de desenvolvimento/teste. Nunca em produção.
 
 ## Exemplo Completo

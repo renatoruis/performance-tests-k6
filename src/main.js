@@ -92,8 +92,14 @@ function getToken() {
     client_secret: CLIENT_SECRET
   };
 
+  // Usar mesma configuração de SSL bypass que o resto do teste
+  const insecureSkipTLS = scenario.insecureSkipTLSVerify || CONFIG.insecureSkipTLSVerify || false;
+
   const res = http.post(KC_TOKEN_URL, payload, {
     timeout: "10s",
+    ...(insecureSkipTLS && {
+      insecureSkipTLSVerify: true
+    })
   });
 
   check(res, {
