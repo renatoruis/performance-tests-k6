@@ -292,8 +292,9 @@ export function handleSummary(data) {
   const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
   const reportName = `report-${SCENARIO}-${timestamp}`;
 
-  // k6 usa o diretório do script como base, então precisamos subir um nível
-  const reportsPath = __ENV.REPORTS_PATH || '../reports';
+  // Usar path relativo ao diretório de execução (raiz do projeto)
+  // k6 mantém o working directory de onde foi chamado
+  const reportsPath = 'reports';
   return {
     [`${reportsPath}/${reportName}.html`]: htmlReport(data),
     stdout: textSummary(data, { indent: " ", enableColors: true }),

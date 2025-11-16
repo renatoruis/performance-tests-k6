@@ -92,12 +92,15 @@ run_test() {
     
     print_header "EXECUTANDO TESTE: $scenario"
     
+    # Ir para o diretório raiz do projeto
+    cd "$(dirname "$0")"
+    
     # Criar pasta de relatórios se não existir
     mkdir -p reports
     
     # Executar k6 (sempre da raiz do projeto)
     print_info "Iniciando teste..."
-    cd "$(dirname "$0")" && k6 run -e SCENARIO="$scenario" src/main.js
+    k6 run -e SCENARIO="$scenario" src/main.js
     
     if [ $? -eq 0 ]; then
         print_success "Teste concluído com sucesso!"
