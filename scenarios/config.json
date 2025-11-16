@@ -9,6 +9,7 @@
     "clientId": "api-testes",
     "clientSecret": "f2IEFFBC4SZ8CYxt7xzHfDm002R8Yt7v"
   },
+  "insecureSkipTLSVerify": false,
   "scenarios": {
     "get": {
       "name": "Descrição: Teste básico",

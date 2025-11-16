@@ -62,6 +62,9 @@ export const options = {
     req_fail_rate: scenario.thresholds?.req_fail_rate || ['rate<0.005'],
     req_slow_over_threshold: scenario.thresholds?.req_slow_over_threshold || ['count<1000'],
   },
+
+  // SSL/TLS - Bypass de verificação de certificado (similar ao curl -k)
+  insecureSkipTLSVerify: scenario.insecureSkipTLSVerify || CONFIG.insecureSkipTLSVerify || false,
 };
 
 // ================================================================

@@ -29,6 +29,7 @@ Edite `scenarios/config.json`:
     "clientId": "seu-client",
     "clientSecret": "seu-secret"
   },
+  "insecureSkipTLSVerify": false,
   "scenarios": {
     "meu-teste": {
       "name": "Meu Teste",
@@ -77,6 +78,7 @@ Edite `scenarios/config.json`:
 | `timeout` | Timeout das requisições | `"10s"` |
 | `expectedStatus` | Status HTTP esperado | `200` |
 | `sleep` | Pausa entre requisições (seg) | `0.5` |
+| `insecureSkipTLSVerify` | Ignora erros SSL (como curl -k) | `true` / `false` |
 
 ### Configurações Avançadas
 
@@ -97,8 +99,20 @@ Edite `scenarios/config.json`:
     "thresholds": {
       "http_req_duration": ["p(99)<300"],
       "req_fail_rate": ["rate<0.01"]
-    }
+    },
+    "insecureSkipTLSVerify": true
   }
+}
+```
+
+**Para ambientes com certificados autoassinados:**
+
+```json
+{
+  "api": {
+    "baseUrl": "https://api-dev.local"
+  },
+  "insecureSkipTLSVerify": true
 }
 ```
 
@@ -147,6 +161,13 @@ Ajuste os thresholds ou reduza a carga (VUs)
 
 ### Token expirando
 Para testes longos (>30min), adicione `"refreshToken": true` no cenário
+
+### Erro SSL/TLS (certificado inválido)
+Para ambientes de dev/teste com certificados autoassinados, adicione:
+```json
+"insecureSkipTLSVerify": true
+```
+⚠️ **Atenção:** Use apenas em ambientes de desenvolvimento/teste. Nunca em produção.
 
 ## Exemplo Completo
 
